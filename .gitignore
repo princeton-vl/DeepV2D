@@ -1,0 +1,12 @@
+*.pyc
+*.so
+*.o
+demo_videos/kitti/
+demo_videos/nyu/
+*.zip
+checkpoints
+logs
+models
+tmp
+*.tfrecords
+*.pkl

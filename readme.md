@@ -32,6 +32,23 @@ Once the weights have been downloaded, you can run the model on one of the examp
   python demos/nyu_demo.py --cfg cfgs/nyu.yaml --sequence demo_videos/nyu_demos/116/
   ```
 
+### Tracking Demo
+As default, DeepV2D operates inplace. It takes a video clip as input and iteratively estimates the depth of the keyframe and the relative pose between the keyframe and each of the other frames in the video.  However, DeepV2D can be converted into a simple (admittedly slow) keyframe-based SLAM system. We provide a demo of these capabilities:
+
+First download some sample videos and poses from the NYU test set:
+
+  ```Shell
+  wget https://www.dropbox.com/s/zh3n98tvjwomzxy/slam_demos.zip?dl=0
+  unzip slam_demos.zip?dl=0
+  ```
+
+Then you can run the SLAM demo on one of the sequences. The demo will display the keyframe depth estimates and also the trajectory of the camera. The estimated trajectory is compared with psuedo-gt poses obtained using RGB-D ORB-SLAM (ORB-SLAM is given RGB-D frames as input, our approach is just given RGB frames):
+
+  ```Shell
+  python demos/nyu_slam.py --sequence slam_demos/living_room/
+  ```
+
+
 
 ## Training and Evaluation
 

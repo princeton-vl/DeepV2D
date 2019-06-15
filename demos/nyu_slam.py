@@ -76,8 +76,13 @@ def main(args):
         net.set_intrinsics(intrinsics)
 
         for image in images:
+            ##### Update the tracker #####
             start = time.time()
             net.update(image)
+            stop = time.time()
+            print("Iteration Time: %f" % (stop-start))
+
+             ##### Display the results #####
             ax.cla()
             ax1.cla()
             ax2.cla()
@@ -86,8 +91,6 @@ def main(args):
             plot_trajectory(ax, net.poses, name='DeepV2D')
             plot_trajectory(ax, orb_poses[:len(net.poses)+1], name='RGB-D ORB-SLAM')
             ax.legend()
-            stop = time.time()
-            print("Iteration Time: %f" % (stop-start))
             plt.pause(0.05)
 
 

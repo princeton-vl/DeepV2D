@@ -8,7 +8,16 @@ Zachary Teed, Jia Deng
 ![Test Image 1](343.png)
 
 ## Requirements
-This code was tested with Tensorflow 1.10.1, CUDA 9.0 and Ubuntu 16.04. The demo and evaluation code has been tested with python2.7 and python3. The training code has only been tested with python2.7. Training requires at least 11Gb of GPU memory. You will need to install the following python libraries to run the code
+This code was tested with Tensorflow 1.10.1, CUDA 9.0 and Ubuntu 16.04. The demo and evaluation code has been tested with python2.7 and python3. The training code has only been tested with python2.7. Training requires at least 11Gb of GPU memory. To run the demos or training scripts, you will first need to install the required libraries
+
+First create a new virtualenv 
+
+  ```Shell
+  virtualenv --no-site-packages -p python2.7 deepv2d_env
+  source deepv2d_env/bin/activate
+  ```
+
+Then install the required packages
 
   ```Shell
   pip install tensorflow-gpu==1.10.1

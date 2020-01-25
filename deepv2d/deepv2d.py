@@ -467,6 +467,3 @@ class DeepV2D:
 
         return self.depths, self.poses
 
-
-    # sc-inv,        a10,         a1,         a2,         a3,       rmse,   log_rmse,        rel,    sq_rel1,    sq_rel2,      log10, 
-    # 0.1048,     0.7943,     0.9396,     0.9850,     0.9944,     0.4594,     0.1301,     0.0715,     0.0522,     0.0191,     0.0307, 

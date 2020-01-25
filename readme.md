@@ -1,131 +1,172 @@
 # DeepV2D
-Tensorflow implementation of DeepV2D: Video to Depth with Differentiable Structure from Motion.
+This repository contains the source code for our paper:
 
-[DeepV2D: Video to Depth with Differentiable Structure from Motion](https://arxiv.org/abs/1812.04605)
+[DeepV2D: Video to Depth with Differentiable Structure from Motion](https://arxiv.org/abs/1812.04605)<br/>
+Zachary Teed and Jia Deng<br/>
+International Conference on Learning Representations (ICLR) 2020<br/>
 
-Zachary Teed, Jia Deng
+<img src="data/Depths.png" width="420"> <img src="data/demo.gif" width="400">
 
-![Test Image 1](343.png)
 
 ## Requirements
-This code was tested with Tensorflow 1.10.1, CUDA 9.0 and Ubuntu 16.04. The demo and evaluation code has been tested with python2.7 and python3. The training code has only been tested with python2.7. Training requires at least 11Gb of GPU memory. To run the demos or training scripts, you will first need to install the required libraries
+Our code was tested using Tensorflow 1.12.0 and Python 3. To use the code, you need to first install the following python packages:
 
-First create a new virtualenv 
+First create a clean virtualenv 
 
   ```Shell
-  virtualenv --no-site-packages -p python2.7 deepv2d_env
+  virtualenv --no-site-packages -p python3 deepv2d_env
   source deepv2d_env/bin/activate
   ```
 
-Then install the required packages
-
   ```Shell
-  pip install tensorflow-gpu==1.10.1
+  pip install tensorflow-gpu==1.12.0
   pip install h5py
   pip install easydict
   pip install scipy
   pip install opencv-python
   pip install pyyaml
   pip install toposort
+  pip install vtk
   ```
+
+You can optionally compile our cuda backprojection operator by running
+
+```Shell
+cd deepv2d/special_ops && ./make.sh && cd ../..
+```
+
+This will reduce peak GPU memory usage. You may need to change CUDALIB to where you have cuda is installed.
+
 
 ## Demos
-We've provided several demo sequences from KITTI and NYU. First download the weights of the trained models
-  ```Shell
-  ./download_models.sh
-  ```
 
-Once the weights have been downloaded, you can run the model on one of the example videos in the demo_videos folder
-  ```Shell
-  python demos/kitti_demo.py --cfg cfgs/kitti.yaml --sequence demo_videos/kitti_demos/032/
-  python demos/nyu_demo.py --cfg cfgs/nyu.yaml --sequence demo_videos/nyu_demos/116/
-  ```
+### Video to Depth (V2D)
 
-### Tracking Demo
-As default, DeepV2D operates inplace. It takes a video clip as input and iteratively estimates the depth of the keyframe and the relative pose between the keyframe and each of the other frames in the video.  However, DeepV2D can be converted into a simple (admittedly slow) keyframe-based SLAM system. We provide a demo of these capabilities:
+Try it out on one of the provided test sequences. First download our pretrained models
 
-First download some sample videos and poses from the NYU test set:
+```Shell
+./data/download_models.sh
+```
 
-  ```Shell
-  wget https://www.dropbox.com/s/zh3n98tvjwomzxy/slam_demos.zip?dl=0
-  unzip slam_demos.zip?dl=0
-  ```
+The demo code will output a depth map and display a point cloud for visualization. Once the depth map has appeared, press any key to open the point cloud visualization.
 
-Then you can run the SLAM demo on one of the sequences. The demo will display the keyframe depth estimates and also the trajectory of the camera. The estimated trajectory is compared with psuedo-gt poses obtained using RGB-D ORB-SLAM (ORB-SLAM is given RGB-D frames as input, our approach is just given RGB frames):
+[NYUv2](https://cs.nyu.edu/~silberman/datasets/nyu_depth_v2.html):
+```Shell
+python demos/demo_v2d.py --model=models/nyu.ckpt --sequence=data/demos/nyu_0
+```
 
-  ```Shell
-  python demos/nyu_slam.py --sequence slam_demos/living_room/
-  ```
+[ScanNet](http://www.scan-net.org/):
+```Shell
+python demos/demo_v2d.py --model=models/scannet.ckpt --sequence=data/demos/scannet_0
+```
 
+[KITTI](http://www.cvlibs.net/datasets/kitti/):
+```Shell
+python demos/demo_v2d.py --model=models/kitti.ckpt --sequence=data/demos/kitti_0
+```
 
+You can also run motion estimation in `global` mode which updates all the poses jointly as a single optimization problem
 
-## Training and Evaluation
+```Shell
+python demos/demo_v2d.py --model=models/nyu.ckpt --sequence=data/demos/nyu_0 --mode=global
+```
 
-To run the training code, you will first need to compile the backprojection operator.
+### Uncalibrated Video to Depth (V2D-Uncalibrated)
 
-  ```Shell
-  cd lib/special_ops/
-  TF_CFLAGS=( $(python -c 'import tensorflow as tf; print(" ".join(tf.sysconfig.get_compile_flags()))') )
-  TF_LFLAGS=( $(python -c 'import tensorflow as tf; print(" ".join(tf.sysconfig.get_link_flags()))') )
+If you do not know the camera intrinsics you can run DeepV2D in uncalibrated mode. In the uncalibrated setting, the motion module estimates the focal length during inference. 
 
-  nvcc -std=c++11 -c -o backproject_op_gpu.cu.o backproject_op_gpu.cu.cc \
-    ${TF_CFLAGS[@]} -D GOOGLE_CUDA=1 -x cu -Xcompiler -fPIC
-
-  g++ -std=c++11 -shared -o backproject.so backproject_op.cc \
-    backproject_op_gpu.cu.o ${TF_CFLAGS[@]} -D GOOGLE_CUDA=1 -fPIC ${TF_LFLAGS[@]}
-
-  cd ../..
-  ```
-
-### [NYU](https://cs.nyu.edu/~silberman/datasets/nyu_depth_v2.html)
-
-We provide training data from NYU as a tfrecords file (143 Gb) which can be downloaded from this link:
-  ```Shell
-  https://drive.google.com/file/d/1-kfW55tpwxFVfv9AL76IFXWuNMBE3b7Y/view?usp=sharing
-  ```
-To train the model, run the following command (training takes about 1 week on a Nvidia 1080Ti GPU, requires 11Gb of memory). Note: this creates a temporary directory which is used to store intermediate depth predictions. You can specify the location of the temporary directory using the --tmp flag.
-
-  ```Shell
-  python train_nyu.py --cfg cfgs/nyu.yaml --name nyu_deepv2d --tfrecords nyu_train.tfrecords
-  ```
-
-To evaluate the trained model, first download the official NYU testing data and splits file, also download our testing videos which were created by sampling frames around the keyframe.
-
-  ```Shell
-  mkdir nyu_data && cd nyu_data
-  wget http://horatio.cs.nyu.edu/mit/silberman/nyu_depth_v2/nyu_depth_v2_labeled.mat
-  wget http://horatio.cs.nyu.edu/mit/silberman/indoor_seg_sup/splits.mat
-  wget https://www.dropbox.com/s/wrot2mjlnm4v3j6/nyu_test.zip?dl=0
-  unzip nyu_test.zip?dl=0
-  cd ..
-  ```
-
-To evaluate, first run the model on the test videos. Then run the evaluation script. The --viz flag can be used to visualize the depth maps during inference. --fcrn_init tells the network to use single image initialization.
-
-  ```Shell
-  python demos/nyu_evaluate.py --cfg cfgs/nyu.yaml --model models/nyu/_stage_2.ckpt-120000 --viz --fcrn_init
-  python tools/nyu_evaluate_depth.py --gt_file nyu_data/nyu_depth_v2_labeled.mat --split_file nyu_data/splits.mat --pred_file nyu_pred.npy
-  ```
-
-### [KITTI](http://www.cvlibs.net/datasets/kitti/)
-
-First download the dataset using this [script](http://www.cvlibs.net/download.php?file=raw_data_downloader.zip) provided on the official website. Once the sequences have been downloaded and extracted. Write the training sequences to a tfrecords file
+```Shell
+python demos/demo_uncalibrated.py --video=data/demos/golf.mov
+```
 
 
-  ```Shell
-  python tools/write_tfrecords.py --dataset kitti --dataset_dir KITTI_DIR --records_file kitti_train.tfrecords
-  ```
+### SLAM / VO
 
-You can now train the model (training takes about 1 week on a Nvidia 1080Ti GPU, requires 11Gb of memory). Note: this creates a temporary directory which is used to store intermediate depth predictions. You can specify the location of the temporary directory using the --tmp flag.
+DeepV2D can also be used for tracking and mapping on longer videos. First, download some test sequences
 
-  ```Shell
-  python train_kitti.py --cfg cfgs/kitti.yaml --name kitti_model --tfrecords kitti_train.tfrecords
-  ```
+```Shell
+./data/download_slam_sequences.sh
+```
 
-To evaluate, first run the model on the test videos. Our evaluated code is based on the evaluation code from [SfMLearner](https://github.com/tinghuiz/SfMLearner).
+Try it out on [NYU-Depth](https://cs.nyu.edu/~silberman/datasets/nyu_depth_v2.html), [ScanNet](http://www.scan-net.org/), [TUM-RGBD](https://vision.in.tum.de/data/datasets/rgbd-dataset), or [KITTI](http://www.cvlibs.net/datasets/kitti/). Using more keyframes `--n_keyframes=?` reduces drift but results in slower tracking.
 
 
-  ```Shell
-  python demos/kitti_evaluate.py --dataset_dir KITTI_DIR --cfg cfgs/kitti.yaml --model models/kitti/_stage_2.ckpt-120000 --viz
-  python tools/kitti_evaluate_depth.py --kitti_dir KITTI_DIR --pred_file kitti_pred.npy
-  ```
+```Shell
+python demos/demo_slam.py --dataset=kitti --n_keyframes=2
+```
+
+```Shell
+python demos/demo_slam.py --dataset=scannet --n_keyframes=3
+```
+
+The `--cinematic` flag forces the visualization to follow the camera
+```Shell
+python demos/demo_slam.py --dataset=nyu --n_keyframes=3 --cinematic
+```
+
+The `--clear_points` flag can be used so that only the point cloud of the current depth is plotted.
+```Shell
+python demos/demo_slam.py --dataset=tum --n_keyframes=3 --clear_points
+```
+
+
+## Evaluation
+
+You can evaluate the trained models on one of the datasets...
+
+#### [NYUv2](https://cs.nyu.edu/~silberman/datasets/nyu_depth_v2.html):
+```Shell
+./data/download_nyu_data.sh
+python evaluation/eval_nyu.py --model=models/nyu.ckpt
+```
+
+#### [KITTI](http://www.cvlibs.net/datasets/kitti/):
+First download the dataset using this [script](http://www.cvlibs.net/download.php?file=raw_data_downloader.zip) provided on the official website. Then run the evaluation script where KITTI_PATH is the location of where the dataset was downloaded
+
+```Shell
+./data/download_kitti_data.sh
+python evaluation/eval_kitti.py --model=models/kitti.ckpt --dataset_dir=KITTI_PATH
+```
+
+#### [ScanNet](http://www.scan-net.org/):
+First download the [ScanNet](https://github.com/ScanNet/ScanNet) dataset.
+
+Then run the evaluation script where SCANNET_PATH is the location of where you downloaded ScanNet
+
+```Shell
+python evaluation/eval_scannet.py --model=models/scannet.ckpt --dataset_dir=SCANNET_PATH
+```
+
+
+## Training
+
+You can train a model on one of the datasets
+
+#### [NYUv2](https://cs.nyu.edu/~silberman/datasets/nyu_depth_v2.html):
+First download the training tfrecords file [here](https://drive.google.com/file/d/1-kfW55tpwxFVfv9AL76IFXWuNMBE3b7Y/view?usp=sharing
+) (143Gb) containing the NYU data. Once the data has been downloaded, train the model by running the command (training takes about 1 week on a Nvidia 1080Ti GPU)
+
+```Shell
+python training/train_nyu.py --cfg=cfgs/nyu.yaml --name=nyu_model --tfrecords=nyu_train.tfrecords
+```
+
+Note: this creates a temporary directory which is used to store intermediate depth predictions. You can specify the location of the temporary directory using the `--tmp` flag. You can use multiple gpus by using the `--num_gpus` flag. If you train with multiple gpus, you can reduce the number of training iterations in cfgs/nyu.yaml.
+
+
+
+#### [KITTI](http://www.cvlibs.net/datasets/kitti/):
+First download the dataset using this [script](http://www.cvlibs.net/download.php?file=raw_data_downloader.zip) provided on the official website. Once the dataset has been downloaded, write the training sequences to a tfrecords file
+
+```Shell
+python training/write_tfrecords.py --dataset=kitti --dataset_dir=KITTI_DIR --records_file=kitti_train.tfrecords
+```
+
+You can now train the model (training takes about 1 week on a Nvidia 1080Ti GPU). Note: this creates a temporary directory which is used to store intermediate depth predictions. You can specify the location of the temporary directory using the `--tmp` flag. You can use multiple gpus by using the `--num_gpus` flag.
+
+```Shell
+python training/train_kitti.py --cfg=cfgs/kitti.yaml --name=kitti_model --tfrecords=kitti_train.tfrecords
+```
+
+#### [ScanNet](http://www.scan-net.org/):
+
+We will add the ScanNet training code soon.

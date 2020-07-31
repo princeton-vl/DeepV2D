@@ -47,6 +47,7 @@ Try it out on one of the provided test sequences. First download our pretrained 
 ```Shell
 ./data/download_models.sh
 ```
+or from [google drive](https://drive.google.com/file/d/1pEUwOw_aOCIz53dGXOnU3KXArzR41YAV/view?usp=sharing)
 
 The demo code will output a depth map and display a point cloud for visualization. Once the depth map has appeared, press any key to open the point cloud visualization.
 

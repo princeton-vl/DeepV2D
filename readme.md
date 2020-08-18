@@ -147,6 +147,8 @@ You can train a model on one of the datasets
 First download the training tfrecords file [here](https://drive.google.com/file/d/1-kfW55tpwxFVfv9AL76IFXWuNMBE3b7Y/view?usp=sharing
 ) (143Gb) containing the NYU data. Once the data has been downloaded, train the model by running the command (training takes about 1 week on a Nvidia 1080Ti GPU)
 
+Camera poses for NYU were estimated using [ORB-SLAM2](https://github.com/raulmur/ORB_SLAM2) using kinect measurements. You can download the estimated poses from [google drive](https://drive.google.com/file/d/13L8ZrFQM1Jlghicvi6dACosK2hu2T45g/view?usp=sharing).
+
 ```Shell
 python training/train_nyu.py --cfg=cfgs/nyu.yaml --name=nyu_model --tfrecords=nyu_train.tfrecords
 ```

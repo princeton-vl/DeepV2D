@@ -6,7 +6,9 @@ import numpy as np
         pr: prediction
 """
 
-
+# As described in Section 4 of the paper: "Since it is not possible to recover the absolute 
+# scale of the scene through SfM, we report all results (both ours and all other approaches) 
+# using scale matched depth."
 def compute_scaling_factor(gt, pr, min_depth=0.5, max_depth=8.0):
     gt = np.array(gt, dtype=np.float64).reshape(-1)
     pr = np.array(pr, dtype=np.float64).reshape(-1)

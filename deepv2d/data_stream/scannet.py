@@ -84,18 +84,17 @@ class ScanNet:
 
     def _load_scan(self, scan):
         scan_path = os.path.join(self.dataset_path, scan)
-        # really need to sample scene more densely (skip every 2 frames not 4)
         if 1:
             imfiles = glob.glob(os.path.join(scan_path, 'pose', '*.txt'))
             ixs = sorted([int(os.path.basename(x).split('.')[0]) for x in imfiles])
 
             images = []
-            for i in ixs:
+            for i in ixs[::2]:
                 imfile = os.path.join(scan_path, 'color', '%d.jpg'%i)
                 images.append(imfile)
 
             poses = []
-            for i in ixs:
+            for i in ixs[::2]:
                 posefile = os.path.join(scan_path, 'pose', '%d.txt' % i)
                 pose = np.loadtxt(posefile, delimiter=' ').astype(np.float32)  
                 poses.append(np.linalg.inv(pose)) # convert c2w->w2c
@@ -116,15 +115,11 @@ class ScanNet:
             return pickle.load(open(datum_file, 'rb'), encoding='latin1')
 
 
-    def build_dataset_index(self, r=4, skip=12):
+    def build_dataset_index(self, r=5, skip=12):
         self.dataset_index = []
         data_id = 0
 
         for scan in sorted(os.listdir(self.dataset_path)):
-            # print(scan, len(self.dataset_index))
-            # if len(self.dataset_index) > 10000:
-            #     break
-
             scanid = int(re.findall(r'scene(.+?)_', scan)[0])
             if scanid>660:
                 continue

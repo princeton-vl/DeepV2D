@@ -103,8 +103,6 @@ class ScanNet:
             for i in ixs[::2]:
                 depthfile = os.path.join(scan_path, 'depth', '%d.png'%i)
                 depths.append(depthfile)
-                depths.append(depthfile)
-
 
             color_intrinsics = np.loadtxt(os.path.join(scan_path, 'intrinsic', 'intrinsic_color.txt'), delimiter=' ')
             depth_intrinsics = np.loadtxt(os.path.join(scan_path, 'intrinsic', 'intrinsic_depth.txt'), delimiter=' ')

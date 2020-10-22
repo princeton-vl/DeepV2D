@@ -170,3 +170,7 @@ You can now train the model (training takes about 1 week on a Nvidia 1080Ti GPU)
 python training/train_kitti.py --cfg=cfgs/kitti.yaml --name=kitti_model --tfrecords=kitti_train.tfrecords
 ```
 
+#### [ScanNet](http://www.scan-net.org/):
+```Shell
+python training/train_scannet.py --cfg=cfgs/scannet.yaml --name=scannet_model --dataset_dir="path to scannet"
+```

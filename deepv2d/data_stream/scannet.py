@@ -71,6 +71,7 @@ class ScanNet:
         K = data_blob['intrinsics']
         kvec = np.stack([K[0,0], K[1,1], K[0,2], K[1,2]], axis=0)
 
+        depth = depth[...,None]
         return images, poses, depth, filled, filled, kvec, frameid
 
 
@@ -84,7 +85,10 @@ class ScanNet:
 
     def _load_scan(self, scan):
         scan_path = os.path.join(self.dataset_path, scan)
-        if 1:
+        datum_file = os.path.join(scan_path, 'pickle-scene.pkl')
+
+        if not os.path.isfile(datum_file):
+
             imfiles = glob.glob(os.path.join(scan_path, 'pose', '*.txt'))
             ixs = sorted([int(os.path.basename(x).split('.')[0]) for x in imfiles])
 
@@ -106,29 +110,33 @@ class ScanNet:
 
             color_intrinsics = np.loadtxt(os.path.join(scan_path, 'intrinsic', 'intrinsic_color.txt'), delimiter=' ')
             depth_intrinsics = np.loadtxt(os.path.join(scan_path, 'intrinsic', 'intrinsic_depth.txt'), delimiter=' ')
-            return images, depths, poses, color_intrinsics, depth_intrinsics
 
+            datum = images, depths, poses, color_intrinsics, depth_intrinsics
+            pickle.dump(datum, open(datum_file, 'wb')) 
+            
         else:
-            datum_file = os.path.join(scan_path, 'scene.pkl')
-            return pickle.load(open(datum_file, 'rb'), encoding='latin1')
+            datum = pickle.load(open(datum_file, 'rb'))
+
+        return datum
 
 
-    def build_dataset_index(self, r=5, skip=12):
+    def build_dataset_index(self, r=4, skip=12):
         self.dataset_index = []
         data_id = 0
 
         for scan in sorted(os.listdir(self.dataset_path)):
+
             scanid = int(re.findall(r'scene(.+?)_', scan)[0])
             if scanid>660:
                 continue
 
             images, depths, poses, color_intrinsics, depth_intrinsics = self._load_scan(scan)
 
-            # some poses in scannet are nans
-            if np.any(np.isnan(poses)):
-                continue
-
             for i in range(r, len(images)-r, skip):
+                # some poses in scannet are nans
+                if np.any(np.isnan(poses[i-r:i+r+1])):
+                    continue
+
                 training_example = {}
                 training_example['depth'] = depths[i]
                 training_example['images'] = images[i-r:i+r+1]
